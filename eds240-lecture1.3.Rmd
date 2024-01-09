@@ -1,0 +1,138 @@
+---
+title: "eds240-week1"
+output: html_document
+date: "2024-01-08"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(palmerpenguins)
+```
+
+## Making data tidy
+```{r}
+# Untidy data
+temp_data_wide <- tribble(
+  ~date, ~station1, ~station2,  ~station3,
+  "2023-10-01", 30.1, 29.8,  31.2,
+  "2023-11-01", 28.6, 29.1,  33.4,
+  "2023-12-01", 29.9, 28.5,  32.3
+)
+
+# Tidy data
+temp_data_long <- temp_data_wide %>% 
+  pivot_longer(cols = starts_with("station"),
+               names_to = "station_id", 
+               values_to = "temp_c")
+```
+
+# Plot
+```{r}
+# Mapping color globally
+ggplot(penguins,
+       aes(x = bill_length_mm,
+           y = bill_depth_mm,
+           color = species)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  scale_color_manual(values = c("darkorange", "purple", "cyan4"))
+
+# Mapping color locally
+ggplot(penguins,
+       aes(x = bill_length_mm,
+           y = bill_depth_mm)) +
+  geom_point(aes(color = species)) +
+  geom_smooth(method = "lm") +
+  scale_color_manual(values = c("darkorange", "purple", "cyan4"))
+```
+
+```{r}
+# Can also define data and mapping locally
+ggplot() +
+  geom_point(data = penguins,
+             mapping = aes(x = bill_length_mm,
+                           y = bill_depth_mm,
+                           color = species))
+```
+
+```{r}
+# Scale color using gradient
+ggplot(penguins,
+       aes(x = body_mass_g,
+           y = flipper_length_mm,
+           color = body_mass_g)) +
+  geom_point() +
+  scale_color_gradient(low = "cyan4", high = "cyan")
+```
+
+```{r}
+# Using geom_bar()
+ggplot(penguins, aes(x = species)) +
+  geom_bar()
+```
+
+```{r}
+# Calculating counts
+penguins_summary <- penguins %>% 
+  count(species)
+
+# Using geom_col()
+ggplot(penguins_summary, aes(x = species, y = n)) +
+  geom_col()
+```
+
+```{r}
+# Overriding default geom_bar() mapping
+ggplot(penguins, aes(x = species,
+                     y = after_stat(prop),
+                     group = 1)) +
+  geom_bar()
+```
+
+```{r}
+# Adding fill variable
+# Adjusting positions
+ggplot(penguins, aes(x = species,
+                     fill = island)) +
+  geom_bar(position = "fill")
+
+# Adding fill variable
+# Adjusting positions
+ggplot(penguins, aes(x = species,
+                     fill = island)) +
+  geom_bar(position = "dodge")
+
+# Adding fill variable
+# Adjusting positions
+ggplot(penguins, aes(x = species,
+                     fill = island)) +
+  geom_bar(position = position_dodge2(preserve = "single"))
+```
+
+
+```{r}
+# Use coordinate functions to change axis arrangement
+ggplot(penguins, aes(x = species)) +
+  geom_bar() +
+  coord_flip()
+
+# Use coordinate functions to change axis arrangement
+ggplot(penguins, aes(x = species)) +
+  geom_bar() +
+  coord_polar()
+```
+
+```{r}
+# Add and customize themes
+ggplot(penguins, aes(x = species)) +
+  geom_bar() +
+  theme_classic() +
+  theme(
+    axis.title = element_text(size = 17, color = "purple")
+  )
+```
+
