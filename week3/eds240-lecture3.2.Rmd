@@ -1,5 +1,5 @@
 ---
-title: "eds240-week1"
+title: "Visualizing distribution"
 output: html_document
 date: "2024-01-08"
 ---
@@ -8,12 +8,13 @@ date: "2024-01-08"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r, message=FALSE}
 library(palmerpenguins)
+library(see)
 ```
 
 
-```{r}
+```{r, message=FALSE}
 #..........................load packages.........................
 library(tidyverse)
 library(chron)
@@ -115,11 +116,15 @@ mko_clean |>
 ## Density plot
 
 ```{r}
+# basic density plot
 mko_clean |> 
   mutate(month_name = factor(x = month_name, levels = month.name)) |> 
   ggplot(aes(x = Temp_bot, fill = month_name)) +
   geom_density(alpha = 0.5)
 ```
+
+
+# Comparing histogram and density plot
 
 ```{r}
 dummy_data <- data.frame(value = c(rnorm(n = 100, mean = 5),
@@ -128,24 +133,28 @@ dummy_data <- data.frame(value = c(rnorm(n = 100, mean = 5),
                                      times = c(100, 200)))
 ```
 
-
 ```{r}
+# basic histogram with rug
 ggplot(dummy_data, aes(x = value, fill = group)) +
   geom_histogram(position = "identity", alpha = 0.7) +
   geom_rug(aes(color = group), alpha = 0.75)
 ```
 
 ```{r}
+# basic density plot with rug
 ggplot(dummy_data, aes(x = value, fill = group)) +
   geom_density(alpha = 0.7) +
   geom_rug(aes(color = group), alpha = 0.75)
 ```
 
 ```{r}
+# histogram and density plot
 ggplot(mko_clean, aes(x = Temp_bot, y = after_stat(density))) + # scale down hist to match density curve
   geom_histogram(fill = "gray", color = "black", alpha = 0.75) +
   geom_density(size = 1) 
 ```
+
+# Scaled density plots for comparing groups to a whole
 
 ```{r}
 # use `after_stat(count)` to plot density of observations ----
@@ -170,17 +179,20 @@ ggplot(penguins, aes(x = body_mass_g, y = after_stat(count))) +
 ## Ridgeline plots
 
 ```{r}
+# basic ridgeline plot
 ggplot(mko_clean, aes(x = Temp_bot, y = month_name)) +
   ggridges::geom_density_ridges()
 ```
 
 ```{r}
+# add color
 ggplot(mko_clean, aes(x = Temp_bot, y = month_name, fill = after_stat(x))) +
   ggridges::geom_density_ridges_gradient() +
   scale_fill_gradientn(colors = c("#2C5374","#849BB4", "#D9E7EC", "#EF8080", "#8B3A3A"))
 ```
 
 ```{r}
+# adjust group order
 ggplot(mko_clean, aes(x = Temp_bot, y = month_name, fill = after_stat(x))) +
   ggridges::geom_density_ridges_gradient() +
   scale_y_discrete(limits = rev(month.name)) +
@@ -188,6 +200,7 @@ ggplot(mko_clean, aes(x = Temp_bot, y = month_name, fill = after_stat(x))) +
 ```
 
 ```{r}
+# adjust overlap and tails
 ggplot(mko_clean, aes(x = Temp_bot, y = month_name, fill = after_stat(x))) +
   ggridges::geom_density_ridges_gradient(rel_min_height = 0.01, scale = 3) +
   scale_y_discrete(limits = rev(month.name)) +
@@ -195,6 +208,7 @@ ggplot(mko_clean, aes(x = Temp_bot, y = month_name, fill = after_stat(x))) +
 ```
 
 ```{r}
+# show quantiles
 ggplot(mko_clean, aes(x = Temp_bot, y = month_name)) +
   ggridges::stat_density_ridges(rel_min_height = 0.01, scale = 3,
                                 quantile_lines = TRUE, quantiles = 2) +
@@ -202,21 +216,24 @@ ggplot(mko_clean, aes(x = Temp_bot, y = month_name)) +
 ```
 
 ```{r}
+# add jittered points
 ggplot(penguins, aes(x = body_mass_g, y = species)) +
   ggridges::geom_density_ridges(jittered_points = TRUE, 
                                 alpha = 0.5, point_size = 0.5)
 ```
 
 ```{r}
+# raincloud plot
 ggplot(penguins, aes(x = body_mass_g, y = species)) +
   ggridges::geom_density_ridges(jittered_points = TRUE, alpha = 0.5, 
                                 point_size = 0.5, scale = 0.6,
                                 position = "raincloud")
 ```
 
-## Box plots
+## Boxplots
 
 ```{r}
+# basic boxplot
 ggplot(mko_clean, aes(x = month_name, y = Temp_bot)) +
   geom_boxplot() +
   scale_x_discrete(limits = rev(month.name)) +
@@ -224,15 +241,58 @@ ggplot(mko_clean, aes(x = month_name, y = Temp_bot)) +
 ```
 
 ```{r}
+# highlight outliers
+ggplot(mko_clean, aes(x = month_name, y = Temp_bot)) +
+  geom_boxplot(outlier.color = "purple", outlier.shape = "circle open", outlier.size = 5) +
+  scale_x_discrete(limits = rev(month.name)) +
+  coord_flip()
+```
+
+
+```{r}
+# highlight a group
+mko_clean |> 
+  ggplot(aes(x = month_name, y = Temp_bot, fill = month_name)) +
+  geom_boxplot() +
+  scale_x_discrete(limits = rev(month.name)) +
+  gghighlight::gghighlight(month_name == "October") +
+  coord_flip() +
+  theme(legend.position = "none")
+```
+
+
+```{r}
+# add jitter points
 ggplot(na.omit(penguins), aes(x = species, y = body_mass_g)) +
   geom_boxplot(outlier.shape = NA) +
   geom_jitter(alpha = 0.5, width = 0.2) +
   coord_flip()
 ```
 
+```{r}
+# use dodged groups
+penguins |> 
+  mutate(year = as.factor(year)) |> 
+  ggplot(aes(x = species, y = body_mass_g, color = year)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_point(alpha = 0.5, position = position_jitterdodge(jitter.width = 0.2)) +
+  coord_flip()
+```
+
+
+```{r}
+# overlay beeswarm
+ggplot(na.omit(penguins), aes(x = species, y = body_mass_g)) +
+  geom_boxplot(outlier.shape = NA) +
+  ggbeeswarm::geom_beeswarm(size = 1) +
+  coord_flip()
+```
+
+
 ## Violin plots
 
 ```{r}
+# basic violin plot
 ggplot(mko_clean, aes(x = month_name, y = Temp_bot)) +
   geom_violin() +
   scale_x_discrete(limits = rev(month.name)) +
@@ -240,6 +300,7 @@ ggplot(mko_clean, aes(x = month_name, y = Temp_bot)) +
 ```
 
 ```{r}
+# overlay boxplot
 ggplot(mko_clean, aes(x = month_name, y = Temp_bot)) +
   geom_violin() +
   geom_boxplot(width = 0.1, color = "gray", alpha = 0.5, 
@@ -248,11 +309,9 @@ ggplot(mko_clean, aes(x = month_name, y = Temp_bot)) +
   coord_flip()
 ```
 
-```{r}
-library(see)
-```
 
 ```{r}
+# half violin half dot plot (using see package)
 ggplot(penguins, aes(x = species, y = bill_length_mm, fill = species)) +
   see::geom_violindot(size_dots = 5, alpha = 0.5) +
   theme(legend.position = "none")

@@ -1,0 +1,194 @@
+---
+title: "Visualizing relationships"
+output: html_document
+date: "2024-01-29"
+---
+
+```{r, message=FALSE}
+library(ggExtra)
+```
+
+
+```{r, message=FALSE}
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+##                                    setup                                 ----
+##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#..........................load packages.........................
+library(metajam) 
+library(tidyverse)
+
+#...................download data from DataOne...................
+download_d1_data("https://cn.dataone.org/cn/v2/resolve/https%3A%2F%2Fpasta.lternet.edu%2Fpackage%2Fdata%2Feml%2Fknb-lter-hbr%2F208%2F9%2F3b3cf7ea447cb875d7c7d68ebdfd24c7",
+                 path = here::here("week4", "data")) 
+
+#  ~ NOTE: I recommend renaming the downloaded folder to 'data/' so that it's ignored by .gitignore! ~
+```
+
+```{r, message=FALSE}
+
+#....................read in downloaded files....................
+stream_chem_all <- metajam::read_d1_files(here::here("week4", "data", "https_pasta.lternet.edu_package_metadata_eml_knb-lter-hbr_208_9__HubbardBrook_weekly_stream_chemistry__csv"))
+
+#........................get the data file.......................
+stream_chem_data <- stream_chem_all$data
+```
+
+## Scatter plot
+
+```{r}
+# Basic scatter plot
+stream_chem_data |> 
+  filter(waterYr == 2021) |> 
+  ggplot(aes(x = DOC, y = pH)) + 
+  geom_point(alpha = 0.5)
+```
+
+```{r}
+# Add rug plot
+stream_chem_data |> 
+  filter(waterYr == 2021) |> 
+  ggplot(aes(x = DOC, y = pH)) + 
+  geom_point(alpha = 0.5) +
+  geom_rug()
+```
+
+```{r}
+# Add marginal histogram / density plot / box plot
+p1 <- stream_chem_data |> 
+  filter(waterYr == 2021) |> 
+  ggplot(aes(x = DOC, y = pH)) + 
+  geom_point(alpha = 0.5)
+
+ggExtra::ggMarginal(p1, type = "histogram")
+ggExtra::ggMarginal(p1, type = "density")
+ggExtra::ggMarginal(p1, type = "boxplot")
+```
+
+```{r}
+# Marginal density plot with groups
+p2 <- stream_chem_data |> 
+  filter(waterYr == 2021) |> 
+  ggplot(aes(x = DOC, y = pH, color = site)) + 
+  geom_point(alpha = 0.5) +
+  theme(legend.position = "bottom")
+
+ggExtra::ggMarginal(p2, type = "density", groupFill = TRUE, groupColour = TRUE)
+```
+
+```{r}
+# Add trend line using LOESS smoothing algorithm
+stream_chem_data |> 
+  filter(waterYr == 2021) |> 
+  filter(site == "W8") |> 
+  ggplot(aes(x = DOC, y = pH)) + 
+  geom_point(alpha = 0.5) +
+  geom_smooth()
+```
+
+```{r}
+# Remove CI (best to remove if it is not a properly analyzed linear model)
+stream_chem_data |> 
+  filter(waterYr == 2021) |> 
+  filter(site == "W8") |> 
+  ggplot(aes(x = DOC, y = pH)) + 
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+```{r}
+# Bubble chart
+# Size of bubbles shows the concentration of aluminium
+stream_chem_data |> 
+  filter(waterYr == 2021) |> 
+  ggplot(aes(x = DOC, y = pH, color = site, size = Al_ICP)) + 
+  geom_point(alpha = 0.5) +
+  labs(x = "DOC (mg/L)", size = "Al (mg/L)", color = "Site")
+```
+
+```{r}
+# Adjust size of bubbles
+stream_chem_data |> 
+  filter(waterYr == 2021) |> 
+  ggplot(aes(x = DOC, y = pH, color = site, size = Al_ICP)) + 
+  geom_point(alpha = 0.5) +
+  scale_size(range = c(1, 10)) +
+  labs(x = "DOC (mg/L)", size = "Al (mg/L)", color = "Site")
+```
+
+```{r}
+# Visualizing a third numeric variables using color
+stream_chem_data |> 
+  filter(waterYr == 2021) |> 
+  ggplot(aes(x = DOC, y = pH, color = Al_ICP)) + 
+  geom_point(alpha = 0.5, size = 2) +
+  scale_color_viridis_c() +
+  labs(x = "DOC (mg/L)", color = "Al (mg/L)")
+```
+
+```{r}
+# Overplotting example
+ggplot(stream_chem_data, aes(x = SO4, y = pH)) + 
+  geom_point()
+```
+
+```{r}
+# Plotting smaller groups to address overplotting
+ggplot(stream_chem_data, aes(x = SO4, y = pH)) + 
+  geom_point(size = 0.5, alpha = 0.3) 
+```
+
+## Heatmap
+
+```{r}
+# Basic heatmap of 2d bin counts
+ggplot(stream_chem_data, aes(x = SO4, y = pH)) +
+  geom_bin2d() +
+  scale_fill_viridis_c()
+```
+
+## Hexmap
+
+```{r}
+# Hexagonal heatmap of 2d bin counts
+ggplot(stream_chem_data, aes(x = SO4, y = pH)) +
+  geom_hex() +
+  scale_fill_viridis_c()
+```
+
+```{r}
+# Adjust legend appearance of hexmap
+ggplot(stream_chem_data, aes(x = SO4, y = pH)) +
+  geom_hex() +
+  scale_fill_viridis_c() + 
+  guides(fill = guide_colourbar(title = "Count", 
+                                barwidth = 1, barheight = 15))
+```
+
+## 2D density plot
+
+```{r}
+ggplot(stream_chem_data, aes(x = SO4, y = pH)) +
+  geom_density_2d() # include `aes(color = ..level..)` if you want to color contours by level of density
+```
+
+```{r}
+# Alternative option
+ggplot(stream_chem_data, aes(x = SO4, y = pH)) +
+  ggdensity::geom_hdr_lines()
+```
+
+
+## Contour plot
+
+```{r}
+ggplot(stream_chem_data, aes(x = SO4, y = pH)) +
+  geom_density_2d_filled()
+```
+
+```{r}
+# Alternative option
+ggplot(stream_chem_data, aes(x = SO4, y = pH)) +
+  ggdensity::geom_hdr()
+```
+
